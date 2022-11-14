@@ -3,7 +3,7 @@ title: "R Coding Lab Part 3: CB"
 output: rmdformats::downcute
 ---
   
-  ```{r setup, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -14,8 +14,9 @@ knitr::opts_chunk$set(echo = TRUE)
 **ALSO, all plots generated should have labeled axes, titles, and legends when appropriate. Don't forget units of measurement! Make sure these plots could be interpreted by your client.**
 
 
-```{r import_data,eval=F, echo=F}
+```{r import_data,eval=T, echo=F}
 library(dplyr)
+library(scales)
 library(ggplot2)
 library(lubridate)
 load("CBdata.1_10.RData") #Loading the cherry blossom data. (this is an example of a properly commented line of code)
@@ -26,7 +27,45 @@ load("CBdata.1_10.RData") #Loading the cherry blossom data. (this is an example 
 
 1) Looking at race times all on their own.
     a) Import the data from `CBdata.1_10.RData` and combine all 10 year's worth of data into one data frame, removing observations with missing age or time data (this should be very similar to previous labs). For each year, create a histogram of race times and plot a the corresponding density curve in the same figure. Arrage all ten of these plots into one figure 
+
+```{r}
+allData <- bind_rows(CBdata.1_10)
+allData <- allData %>%
+    mutate(Time = as.numeric(hms(Time)),
+           Pace = as.numeric(ms(Pace)))
+allData <- allData %>% filter(!is.na(Age)) 
+allData <- allData %>% filter(!is.na(Time))
+
+# allData[allData$Time==1973,]
+
+# histogram with density curve
+ggplot(allData, aes(x=Time)) +
+  geom_histogram(aes(y=..density.., group=Year)) +
+  geom_density(aes(group = Year), colour="red") +
+  facet_wrap(Year ~., nrow=5, ncol=2, scales = "free") +
+  scale_y_continuous(labels = percent_format(accuracy = 0.01)) +
+  ylab("Density")
+
+
+```
+
     b) Plot the density curves for all ten years in one figure, along with a density curve of the combined data set (for a total of 11 curves). The main focus should be displaying the combined density, but all 11 densities should be discernible.
+
+```{r}
+allData <- allData %>%
+    mutate(Year = as.character(Year))
+ggplot(allData, aes(x=Time)) +
+  geom_density(aes(group = Year,
+                   color = Year)) +
+  geom_line(stat="density", colour="red", lwd=1.5) +
+  xlim(2500,8400) + # zoom-in main part of density plot, discard the tail. 8400 seconds = 2 hours 20 minutes
+  scale_y_continuous(labels = percent_format(accuracy = 0.01)) +
+  ylab("Density") +
+  labs(title="Density Plot for each Year")
+# ?scale_color_brewer
+
+```
+
   
 2) Correlating age and time: Create a scatter plot of age and race time, with time being the response. All ten year's worth of data should be included, but you should be able to tell which year each point comes from. Include trend lines for each year, along with a trend line for the combined data set.
 
