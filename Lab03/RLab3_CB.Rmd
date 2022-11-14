@@ -2,7 +2,7 @@
 title: "R Coding Lab Part 3: CB"
 output: rmdformats::downcute
 ---
-  
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -19,9 +19,7 @@ library(dplyr)
 library(scales)
 library(ggplot2)
 library(lubridate)
-load("CBdata.1_10.RData") #Loading the cherry blossom data. (this is an example of a properly commented line of code)
-
-
+load("CBdata.1_10.RData") #Loading the cherry blossom data.
 ```
 # Cherry Blossom Race Plotting Problems
 
@@ -67,15 +65,106 @@ ggplot(allData, aes(x=Time)) +
 ```
 
   
+
 2) Correlating age and time: Create a scatter plot of age and race time, with time being the response. All ten year's worth of data should be included, but you should be able to tell which year each point comes from. Include trend lines for each year, along with a trend line for the combined data set.
 
 Write a short interpretation of the plot as if you were explaining it to your client.
-  
-  
-3) Relating age and times categorically:  
-We're interested in the age composition for ten performance groups. The performance groups are defined based ten percentiles (10%, 20%,...100%) of relative finish position. For example, someone finishing 3rd out of 125 would be in the 10th-percentile group, while someone finishing 985 out of 1013 would be in the 100th-percentile group.  
-The age groups we're interested in are defined by decade, so separate people in their 20's from people in their 30's and so forth.  
-Generate one plot that displays the age composition of each of the ten performance groups. Make sure you're using all ten year's worth of data.  
+
+
+3) Relating age and times categorically:
+We're interested in the age composition for ten performance groups. The performance groups are defined based ten percentiles (10%, 20%,...100%) of relative finish position. For example, someone finishing 3rd out of 125 would be in the 10th-percentile group, while someone finishing 985 out of 1013 would be in the 100th-percentile group.
+The age groups we're interested in are defined by decade, so separate people in their 20's from people in their 30's and so forth.
+Generate one plot that displays the age composition of each of the ten performance groups. Make sure you're using all ten year's worth of data.
 Hint: You can compute performance groups manually from `Year` and `Time`, or by carefully manipulating `Pis/Tis`.
 
+```{r}
+# merge all years into single data frame object
+df <- Reduce( function(x,y) merge(x,y,all=TRUE), CBdata.1_10 )
 
+#
+df <- df %>%
+    rename( age = Age ) %>%
+    rename( place = "PiS/TiS" ) %>%
+    select(
+        -Name,
+        -Pace,
+        -Division,
+        -Hometown,
+        -Year,
+        -"PiD/TiD",
+        -Time) %>%
+    mutate( Race = substr( Race, 6, length(Race) ) ) %>%
+    filter( Race == "10M" ) %>%
+    select( -Race ) %>%
+    filter( age != is.nan(age) ) %>%
+    filter( age >= 10 )
+
+#
+df <- df %>%
+    mutate( decade = 10*floor( age/10 ) )
+
+#
+df <- df %>%
+    mutate( race_size = sapply( strsplit( place, "/" ),
+        function(x) as.numeric(x[2]) ) ) %>%
+    mutate( place = sapply( strsplit( place, "/" ),
+        function(x) as.numeric(x[1]) ) )
+
+# for some reason two of the participants are recorded as
+# finishing in (n+1)th place out of n participants... typo?
+# these two observations were removed.
+print( df %>% filter( place > race_size ) )
+
+df <- df %>%
+    filter( place <= race_size )
+
+#
+df <- df %>%
+    mutate( percentile = 10 * ceiling( 10 * place / race_size ) )
+
+#
+df <- df %>%
+    mutate( age_percentile_group =
+        paste( as.character(decade), as.character(percentile) ) ) %>%
+    add_count( age_percentile_group ) %>%
+    select( -age_percentile_group ) %>%
+    rename( age_percentile_group_count = n )
+
+#
+df <- df %>%
+    add_count( decade ) %>%
+    rename( decade_count = n )
+
+#
+df <- df %>%
+    mutate( relative_age_percentile_count =
+        100 * age_percentile_group_count / decade_count )
+
+#
+ggplot(
+    data = df,
+    aes(
+        x = percentile,
+        y = age_percentile_group_count,
+        group = decade,
+        color = decade)
+    ) +
+    geom_line(lwd = 0.3) +
+    xlab("Performance percentile") +
+    ylab("Number of participants") +
+    ggtitle("Perfomance distribution for age groups")
+
+#
+ggplot(
+    data = df,
+    aes(
+        x = percentile,
+        y = relative_age_percentile_count,
+        group = decade,
+        color = decade)
+    ) +
+    geom_line(lwd = 0.3) +
+    xlab("Performance percentile") +
+    ylab("Proportion of participants in age group (%)") +
+    ggtitle("Relative perfomance distribution for age groups")
+```
