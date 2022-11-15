@@ -70,16 +70,16 @@ ggplot(allData, aes(x=Time)) + # x axis is runner time and y axis is the density
 
 2) Correlating age and time: Create a scatter plot of age and race time, with time being the response. All ten year's worth of data should be included, but you should be able to tell which year each point comes from. Include trend lines for each year, along with a trend line for the combined data set.
 ```{r}
-ggplot(allData,
+ggplot(allData, # make scatter plot of finishing time vs. age
        aes(x = Age,
            y = Time)) +
-  geom_point(aes(group = Year,
+  geom_point(aes(group = Year, # group participants by year, use colors to mark year
                  color = Year)) +
-  geom_smooth(aes(group = Year)) +
-  xlab("Age of Runner (Years)") +
+  geom_smooth(aes(group = Year)) + # add smooth trend lines
+  xlab("Age of Runner (Years)") + # x and y labels
   ylab("Time of Run (HMS)") +
-  ggtitle("Scatterplot of Age to Time") +
-  facet_wrap(Year~., ncol = 3)
+  ggtitle("Scatterplot of Age to Time") + # title
+  facet_wrap(Year~., ncol = 3) # make separate scatter plots for each year
 
 ```
 
@@ -147,7 +147,7 @@ print( df %>% filter( place > race_size ) )
 df <- df %>%
     filter( place <= race_size )
 
-# Create place in percentile from position/number of runners each race 
+# Create place in percentile from position/number of runners each race
 df <- df %>%
     mutate( percentile = 10 * ceiling( 10 * place / race_size ) )
 
@@ -193,5 +193,5 @@ ggplot(data = df,
   ylab("Proportion of runners") +
   ggtitle("Composition of age groups for each performance percentile") +
   labs(fill= "Age groups in decade")
-  
+
 ```

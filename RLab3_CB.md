@@ -13,6 +13,42 @@ output: rmdformats::downcute
 
 
 
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```
+## Need help getting started? Try the R Graphics Cookbook:
+## https://r-graphics.org
+```
+
+```
+## Loading required package: timechange
+```
+
+```
+## 
+## Attaching package: 'lubridate'
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     date, intersect, setdiff, union
+```
 # Cherry Blossom Race Plotting Problems
 
 1) Looking at race times all on their own.
@@ -49,7 +85,13 @@ ggplot(allData, aes(x=Time)) + # x axis is the time and y axis is the density of
   geom_density(aes(group = Year), colour="red") + # have a red line to represent the density curve
   facet_wrap(Year ~., nrow=5, ncol=2, scales = "free") + # facet the data by year
   scale_y_continuous(labels = percent_format(accuracy = 0.01)) +
-  ylab("Density")
+  ylab("Density") +
+  labs(title="Histogram of Race time by Year")
+```
+
+```
+## Warning: The dot-dot notation (`..density..`) was deprecated in ggplot2 3.4.0.
+## ℹ Please use `after_stat(density)` instead.
 ```
 
 ```
@@ -76,31 +118,32 @@ ggplot(allData, aes(x=Time)) + # x axis is runner time and y axis is the density
 ```
 
 ```
+## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+## ℹ Please use `linewidth` instead.
+```
+
+```
 ## Warning: Removed 1 rows containing non-finite values (`stat_density()`).
 ## Removed 1 rows containing non-finite values (`stat_density()`).
 ```
 
 ![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2-1.png)
 
-```r
-# ?scale_color_brewer
-```
-
 
 
 2) Correlating age and time: Create a scatter plot of age and race time, with time being the response. All ten year's worth of data should be included, but you should be able to tell which year each point comes from. Include trend lines for each year, along with a trend line for the combined data set.
 
 ```r
-ggplot(allData,
+ggplot(allData, # make scatter plot of finishing time vs. age
        aes(x = Age,
            y = Time)) +
-  geom_point(aes(group = Year,
+  geom_point(aes(group = Year, # group participants by year, use colors to mark year
                  color = Year)) +
-  geom_smooth(aes(group = Year)) +
-  xlab("Age of Runner (Years)") +
+  geom_smooth(aes(group = Year)) + # add smooth trend lines
+  xlab("Age of Runner (Years)") + # x and y labels
   ylab("Time of Run (HMS)") +
-  ggtitle("Scatterplot of Age to Time") +
-  facet_wrap(Year~., ncol = 3)
+  ggtitle("Scatterplot of Age to Time") + # title
+  facet_wrap(Year~., ncol = 3) # make separate scatter plots for each year
 ```
 
 ```
@@ -142,7 +185,7 @@ Hint: You can compute performance groups manually from `Year` and `Time`, or by 
 # merge all years into single data frame object
 df <- Reduce( function(x,y) merge(x,y,all=TRUE), CBdata.1_10 )
 
-#
+# Keep age and place (PiS/TiS) information, filter runners 10 year or older, drop missing age observation
 df <- df %>%
     rename( age = Age ) %>%
     rename( place = "PiS/TiS" ) %>%
@@ -160,11 +203,12 @@ df <- df %>%
     filter( age != is.nan(age) ) %>%
     filter( age >= 10 )
 
-#
+# Create age group by decade
 df <- df %>%
     mutate( decade = 10*floor( age/10 ) )
 
-#
+# Use PiS/Tis to create place in percentile
+## Extract position and total number of runners in each race
 df <- df %>%
     mutate( race_size = sapply( strsplit( place, "/" ),
         function(x) as.numeric(x[2]) ) ) %>%
@@ -187,37 +231,52 @@ print( df %>% filter( place > race_size ) )
 df <- df %>%
     filter( place <= race_size )
 
-#
+# Create place in percentile from position/number of runners each race
 df <- df %>%
     mutate( percentile = 10 * ceiling( 10 * place / race_size ) )
 
 #
-df <- df %>%
-    mutate( age_percentile_group =
-        paste( as.character(decade), as.character(percentile) ) ) %>%
-    add_count( age_percentile_group ) %>%
-    select( -age_percentile_group ) %>%
-    rename( age_percentile_group_count = n )
+# df <- df %>%
+#     mutate( age_percentile_group =
+#         paste( as.character(decade), as.character(percentile) ) ) %>%
+#     add_count( age_percentile_group ) %>%
+#     select( -age_percentile_group ) %>%
+#     rename( age_percentile_group_count = n )
 
+# Convert age group decade into character type for legend
 df <- df %>%
     mutate( decade = as.character(decade) )
 
 #
-ggplot(
-    data = df,
-    aes(
-        x = percentile,
-        y = age_percentile_group_count/1000,
-        group = decade,
-        fill = decade)
-    ) +
-    geom_col(aes(fill = decade),
-    position = position_stack(reverse = TRUE) ) +
-    scale_x_continuous(n.breaks=10) +
-    scale_y_continuous(n.breaks=10) +
-    xlab("Performance percentile") +
-    ylab("Number of participants (thousands)") +
-    ggtitle("Perfomance distribution for age groups")
+# ggplot(
+#     data = df,
+#     aes(
+#         x = percentile,
+#         y = age_percentile_group_count/1000,
+#         group = decade,
+#         fill = decade)
+#     ) +
+#     geom_col(aes(fill = decade),
+#     position = position_stack(reverse = TRUE) ) +
+#     scale_x_continuous(n.breaks=10) +
+#     scale_y_continuous(n.breaks=10) +
+#     xlab("Performance percentile") +
+#     ylab("Number of participants (thousands)") +
+#     ggtitle("Perfomance distribution for age groups")
+
+# df <- df %>%
+#     mutate( percentile = as.character(percentile) )
+ggplot(data = df,
+  aes(x = percentile,
+      fill = decade)) + # by age groups in decades
+  geom_bar(position = "fill") + # stacked bars to 100%
+  # scale_x_discrete(limits = c("10","20","30","40","50","60","70","80","90","100")) +
+  scale_x_continuous(n.breaks=10) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) + #format y-axis to be in %, rounded)
+  xlab("Performance in percentile") +
+  ylab("Proportion of runners") +
+  ggtitle("Composition of age groups for each performance percentile") +
+  labs(fill= "Age groups in decade")
 ```
 
 ![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png)
