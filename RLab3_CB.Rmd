@@ -158,6 +158,9 @@ df <- df %>%
     select( -age_percentile_group ) %>%
     rename( age_percentile_group_count = n )
 
+df <- df %>%
+    mutate( decade = as.character(decade) )
+
 #
 ggplot(
     data = df,
